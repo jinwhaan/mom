@@ -1,313 +1,271 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <title>직선의 기울기 문제</title>
-    <style>
-        body {
-            font-family: Arial, sans-serif;
-            line-height: 1.6;
-            margin: 20px;
-        }
-        .problem {
-            margin-bottom: 20px;
-        }
-        .input-container {
-            display: flex;
-            align-items: center;
-            margin-bottom: 10px;
-        }
-        #input-answer {
-            width: 200px;
-            height: 30px;
-            font-size: 1em;
-            margin-right: 10px;
-        }
-        #submit-answer {
-            height: 36px;
-            font-size: 1em;
-        }
-        .result {
-            margin-top: 10px;
-            color: green;
-        }
-        .error {
-            color: red;
-        }
-        .scoreboard {
-            margin-top: 20px;
-            font-weight: bold;
-        }
-        .final-summary {
-            margin-top: 30px;
-        }
-        .example {
-            margin-top: 10px;
-            font-size: 0.9em;
-            color: grey;
-        }
-        #retry-button {
-            margin-top: 20px;
-            padding: 10px 20px;
-            font-size: 1.1em;
-            cursor: pointer;
-        }
-    </style>
-    <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            let problems = [];
-            let currentIndex = 0;
-            let score = 0;
-            let attempts = 3;
-            let timer = 50;
-            let interval;
-            let results = [];
-
-            // Generate 3 random problems
-            function generateProblems() {
-                problems = [];
-                for (let i = 0; i < 3; i++) {
-                    let a = getRandomNonZero(-9, 9);
-                    let b = getRandomNonZero(-9, 9);
-                    let c = getRandomNonZero(-9, 9);
-                    problems.push({ a, b, c });
-                }
-            }
-
-            // Generate a random non-zero number in a range
-            function getRandomNonZero(min, max) {
-                let num;
-                do {
-                    num = Math.floor(Math.random() * (max - min + 1)) + min;
-                } while (num === 0);
-                return num;
-            }
-
-            // Get the greatest common divisor (GCD)
-            function gcd(x, y) {
-                return y === 0 ? x : gcd(y, x % y);
-            }
-
-            // Reduce a fraction to lowest terms
-            function reduceFraction(numerator, denominator) {
-                const divisor = gcd(Math.abs(numerator), Math.abs(denominator));
-                const reducedNumerator = numerator / divisor;
-                const reducedDenominator = denominator / divisor;
-
-                // Ensure the denominator is always positive
-                return {
-                    numerator: reducedDenominator < 0 ? -reducedNumerator : reducedNumerator,
-                    denominator: reducedDenominator < 0 ? -reducedDenominator : reducedDenominator
-                };
-            }
-
-            // Start the timer for each question
-            function startTimer() {
-                timer = 50;
-                clearInterval(interval);
-                interval = setInterval(() => {
-                    document.getElementById("timer").textContent = `남은 시간: ${timer}초`;
-                    timer--;
-                    if (timer < 0) {
-                        clearInterval(interval);
-                        handleIncorrectAnswer("시간 초과");
-                    }
-                }, 1000);
-            }
-
-            // Get the formatted slope as a reduced fraction
-            function getFormattedSlope(a, b) {
-                const reduced = reduceFraction(-a, b);
-                return `${reduced.numerator}/${reduced.denominator}`;
-            }
-
-            // Check if two fractions are mathematically equivalent
-            function areFractionsEquivalent(num1, den1, num2, den2) {
-                return num1 * den2 === num2 * den1;
-            }
-
-            // Show the next problem
-            function showProblem() {
-                if (currentIndex >= problems.length) {
-                    finishQuiz();
-                    return;
-                }
-
-                const problem = problems[currentIndex];
-                const equation = `${problem.a}x + (${problem.b})y = ${problem.c}`;
-                document.getElementById("problem").textContent = `문제 ${currentIndex + 1}: ${equation}`;
-                document.getElementById("input-answer").value = "";
-                document.getElementById("timer").textContent = `남은 시간: ${timer}초`;
-                document.getElementById("result").textContent = "";
-                document.getElementById("scoreboard").textContent = `현재 점수: ${score}점 / 남은 문제: ${problems.length - currentIndex}`;
-                document.getElementById("example").textContent = "예시: 정수형 정답은 -1, 분수형 정답은 -3/2";
-
-                startTimer();
-            }
-
-            // Check the answer and validate for reduction
-            function checkAnswer() {
-                const answerInput = document.getElementById("input-answer").value.trim();
-                if (!answerInput.includes("/") && !answerInput.match(/^[-0-9]+$/)) {
-                    document.getElementById("result").textContent = "정답은 정수 또는 약분된 분수 (분자/분모) 형태로 입력해주세요.";
-                    document.getElementById("result").classList.add("error");
-                    return;
-                }
-
-                const problem = problems[currentIndex];
-                const correctSlope = getFormattedSlope(problem.a, problem.b);
-                const [correctNumerator, correctDenominator] = correctSlope
-                    .split("/")
-                    .map(Number);
-
-                const [inputNumerator, inputDenominator] =
-                    answerInput.includes("/")
-                        ? answerInput.split("/").map(Number)
-                        : [Number(answerInput), 1];
-
-                // Check if the input fraction is mathematically equivalent to the correct fraction
-                if (areFractionsEquivalent(inputNumerator, inputDenominator, correctNumerator, correctDenominator)) {
-                    // Check if the user's fraction is reduced
-                    const userReduced = reduceFraction(inputNumerator, inputDenominator);
-                    const reducedSlope = `${userReduced.numerator}/${userReduced.denominator}`;
-
-                    if (reducedSlope === correctSlope) {
-                        clearInterval(interval);
-                        const earnedScore = timer > 0 ? timer : 0;
-                        score += earnedScore;
-                        results.push({
-                            문제: `${problem.a}x + (${problem.b})y = ${problem.c}`,
-                            입력값: answerInput,
-                            정답: correctSlope,
-                            메시지: "정답"
-                        });
-                        document.getElementById("result").textContent = `정답! ${earnedScore}점 획득!`;
-                        document.getElementById("result").classList.remove("error");
-                        document.getElementById("result").classList.add("result");
-                        currentIndex++;
-                        attempts = 3;
-                        setTimeout(showProblem, 1500);
-                    } else {
-                        // Fraction not reduced
-                        results.push({
-                            문제: `${problem.a}x + (${problem.b})y = ${problem.c}`,
-                            입력값: answerInput,
-                            정답: correctSlope,
-                            메시지: "약분 필요"
-                        });
-                        document.getElementById("result").textContent = "정답은 약분된 형태로 입력해주세요!";
-                        document.getElementById("result").classList.add("error");
-                        attempts--;
-                        if (attempts === 0) {
-                            handleIncorrectAnswer("기회를 모두 소진했습니다.");
-                        }
-                    }
-                } else {
-                    // Completely incorrect answer
-                    attempts--;
-                    if (attempts === 0) {
-                        handleIncorrectAnswer("기회를 모두 소진했습니다.");
-                    } else {
-                        document.getElementById("result").textContent = `오답! 남은 시도: ${attempts}번`;
-                        document.getElementById("result").classList.add("error");
-                    }
-                }
-            }
-
-            // Handle incorrect answer or timeout
-            function handleIncorrectAnswer(message) {
-                clearInterval(interval);
-                const problem = problems[currentIndex];
-                const correctSlope = getFormattedSlope(problem.a, problem.b);
-                results.push({
-                    문제: `${problem.a}x + (${problem.b})y = ${problem.c}`,
-                    입력값: "-",
-                    정답: correctSlope,
-                    메시지: message
-                });
-                document.getElementById("result").textContent = `${message} 정답은 ${correctSlope}입니다.`;
-                document.getElementById("result").classList.add("error");
-                currentIndex++;
-                attempts = 3;
-                setTimeout(showProblem, 1500);
-            }
-
-            // Finish the quiz and show the summary
-            function finishQuiz() {
-                clearInterval(interval);
-                let summaryHTML = "<h2>퀴즈 결과</h2>";
-                results.forEach((result, index) => {
-                    summaryHTML += `<p>문제 ${index + 1}: ${result.문제}<br>입력값: ${result.입력값}<br>정답: ${result.정답}<br>결과: ${result.메시지}</p>`;
-                });
-                summaryHTML += `<p>최종 점수: ${score}점</p>`;
-                summaryHTML += `<button id="retry-button">다시 도전하기</button>`;
-                document.getElementById("quiz-container").innerHTML = summaryHTML;
-
-                // Register event after replacing innerHTML
-                document.getElementById("retry-button").addEventListener("click", restartQuiz);
-            }
-
-            // Restart the quiz
-            function restartQuiz() {
-                currentIndex = 0;
-                score = 0;
-                attempts = 3;
-                results = [];
-                generateProblems();
-
-                // Reset the quiz container
-                document.getElementById("quiz-container").innerHTML = `
-                    <h1>직선의 기울기 문제</h1>
-                    <div id="problem" class="problem"></div>
-                    <div class="input-container">
-                        <input type="text" id="input-answer" />
-                        <button id="submit-answer">제출</button>
-                    </div>
-                    <div id="example" class="example"></div>
-                    <div id="timer">남은 시간: 50초</div>
-                    <div id="result"></div>
-                    <div id="scoreboard" class="scoreboard"></div>
-                `;
-                document.getElementById("submit-answer").addEventListener("click", checkAnswer);
-                document.getElementById("input-answer").addEventListener("keydown", function (event) {
-                    if (event.key === "Enter") {
-                        checkAnswer();
-                    }
-                });
-
-                showProblem();
-            }
-
-            // Start the quiz
-            function startQuiz() {
-                generateProblems();
-                showProblem();
-
-                document.getElementById("submit-answer").addEventListener("click", checkAnswer);
-                document.getElementById("input-answer").addEventListener("keydown", function (event) {
-                    if (event.key === "Enter") {
-                        checkAnswer();
-                    }
-                });
-            }
-
-            // Initialize the quiz
-            startQuiz();
-        });
-    </script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>금쪽이를 위한 정수의 덧셈 뺄셈 연습</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #4CAF50;
+    }
+    .container {
+      background: #fff;
+      padding: 20px 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      margin-top: 20px;
+    }
+    .options {
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .options label {
+      font-size: 1rem;
+    }
+    .options button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      font-size: 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .options button:hover {
+      background-color: #45a049;
+    }
+    .question-box {
+      border: 1px solid #ddd;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      background-color: #f1f1f1;
+    }
+    .question {
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 15px;
+    }
+    .controls input {
+      width: 100%;
+      padding: 10px;
+      font-size: 1.1rem;
+      margin-right: 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      outline: none;
+    }
+    .controls input:focus {
+      border-color: #4CAF50;
+    }
+    .controls button {
+      margin-top: 10px;
+      width: 100%;
+      background-color: #4CAF50;
+      color: white;
+      font-size: 1rem;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .controls button:hover {
+      background-color: #45a049;
+    }
+    .score-board {
+      font-size: 1.2em;
+      text-align: center;
+      margin-top: 15px;
+    }
+    .feedback {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #d32f2f;
+    }
+    .feedback.correct {
+      color: #388e3c;
+    }
+  </style>
 </head>
 <body>
-    <div id="quiz-container">
-        <h1>직선의 기울기 문제</h1>
-        <div id="problem" class="problem"></div>
-        <div class="input-container">
-            <input type="text" id="input-answer" />
-            <button id="submit-answer">제출</button>
-        </div>
-        <div id="example" class="example"></div>
-        <div id="timer">남은 시간: 50초</div>
-        <div id="result"></div>
-        <div id="scoreboard" class="scoreboard"></div>
+  <h1>금쪽이를 위한 정수의 덧셈 뺄셈 연습</h1>
+  <div class="container">
+    <div class="options">
+      <div>
+        <label>
+          <input type="checkbox" id="addition" checked> 덧셈
+        </label>
+        <label>
+          <input type="checkbox" id="subtraction" checked> 뺄셈
+        </label>
+      </div>
+      <button onclick="startQuiz()">퀴즈 시작</button>
     </div>
+    <div class="question-box" id="quiz-container" style="display: none;">
+      <div class="question" id="question"></div>
+      <div class="controls">
+        <input type="number" id="answer" placeholder="정답 입력">
+        <button onclick="submitAnswer()">정답 제출</button>
+      </div>
+      <div class="score-board">
+        <p id="time-left"></p>
+        <p id="remaining-questions"></p>
+        <p id="current-score"></p>
+      </div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+  </div>
+
+  <script>
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let timeLeft = 50;
+    let timer;
+    let attemptsLeft = 3;
+
+    // 퀴즈 시작 함수
+    function startQuiz() {
+      const addition = document.getElementById("addition").checked;
+      const subtraction = document.getElementById("subtraction").checked;
+      if (!addition && !subtraction) {
+        alert("최소 하나의 연산을 선택해야 합니다!");
+        return;
+      }
+
+      questions = generateQuestions(addition, subtraction);
+      currentQuestionIndex = 0;
+      score = 0;
+
+      document.getElementById("quiz-container").style.display = "block";
+      showQuestion();
+    }
+
+    // 질문 생성 함수
+    function generateQuestions(addition, subtraction) {
+      const operations = [];
+      if (addition) operations.push("+");
+      if (subtraction) operations.push("-");
+
+      const generatedQuestions = [];
+      while (generatedQuestions.length < 10) {
+        const num1 = getRandomInt(-9, 9);
+        const num2 = getRandomInt(-9, 9, true); // exclude zero
+        const operation = operations[Math.floor(Math.random() * operations.length)];
+
+        if (operation === "+" && num1 > 0 && num2 > 0) continue; // 양수 + 양수 제외
+        if (operation === "-" && num1 > num2) continue; // 결과가 양수인 양수 - 양수 제외
+
+        const question = `${formatNumber(num1)} ${operation} ${formatNumber(num2)}`;
+        const answer = eval(`${num1} ${operation} ${num2}`);
+        generatedQuestions.push({ question, answer });
+      }
+      return generatedQuestions;
+    }
+
+    // 랜덤 정수 생성 함수
+    function getRandomInt(min, max, excludeZero = false) {
+      let num;
+      do {
+        num = Math.floor(Math.random() * (max - min + 1)) + min;
+      } while (excludeZero && num === 0);
+      return num;
+    }
+
+    // 숫자 포맷 함수 (음수에 괄호 추가)
+    function formatNumber(num) {
+      return num < 0 ? `(${num})` : `${num}`;
+    }
+
+    // 문제 표시 함수
+    function showQuestion() {
+      clearInterval(timer);
+      timeLeft = 50;
+      attemptsLeft = 3;
+
+      const currentQuestion = questions[currentQuestionIndex];
+      document.getElementById("question").textContent = `문제: ${currentQuestion.question}`;
+      document.getElementById("time-left").textContent = `남은 시간: ${timeLeft}초`;
+      document.getElementById("answer").value = "";
+      document.getElementById("remaining-questions").textContent = `남은 문제 수: ${questions.length - currentQuestionIndex}`;
+      document.getElementById("current-score").textContent = `현재 점수: ${score}`;
+      document.getElementById("feedback").textContent = "";
+
+      timer = setInterval(() => {
+        timeLeft -= 1;
+        document.getElementById("time-left").textContent = `남은 시간: ${timeLeft}초`;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          nextQuestion(false);
+        }
+      }, 1000);
+
+      document.getElementById("answer").focus();
+    }
+
+    // 정답 제출 함수
+    function submitAnswer() {
+      const answerField = document.getElementById("answer");
+      const answer = parseInt(answerField.value, 10);
+      const currentQuestion = questions[currentQuestionIndex];
+
+      if (answer === currentQuestion.answer) {
+        clearInterval(timer);
+        score += timeLeft; // 남은 시간만큼 점수 획득
+        document.getElementById("feedback").textContent = `정답입니다! ${timeLeft}점을 획득했습니다.`;
+        document.getElementById("feedback").classList.add("correct");
+        nextQuestion(true);
+      } else {
+        attemptsLeft -= 1;
+        if (attemptsLeft > 0) {
+          document.getElementById("feedback").textContent = `오답입니다. 남은 기회: ${attemptsLeft}`;
+          document.getElementById("feedback").classList.remove("correct");
+        } else {
+          clearInterval(timer);
+          document.getElementById("feedback").textContent = `기회를 모두 소진했습니다. 정답은 ${currentQuestion.answer}입니다.`;
+          nextQuestion(false);
+        }
+      }
+    }
+
+    // 다음 문제로 이동
+    function nextQuestion(correct) {
+      if (correct || timeLeft <= 0 || attemptsLeft <= 0) {
+        currentQuestionIndex += 1;
+        if (currentQuestionIndex < questions.length) {
+          showQuestion();
+        } else {
+          endQuiz();
+        }
+      }
+      document.getElementById("current-score").textContent = `현재 점수: ${score}`;
+    }
+
+    // 퀴즈 종료 함수
+    function endQuiz() {
+      document.getElementById("quiz-container").style.display = "none";
+      alert(`퀴즈 종료! 당신의 총 점수는 ${score}점입니다.`);
+    }
+
+    // Enter 키로 정답 제출
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") submitAnswer();
+    });
+  </script>
 </body>
 </html>
