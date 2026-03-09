@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>금쪽이를 위한 정수의 덧셈 뺄셈 연습</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      line-height: 1.6;
+      max-width: 700px;
+      margin: 0 auto;
+      padding: 20px;
+      background-color: #f9f9f9;
+      color: #333;
+    }
+    h1 {
+      text-align: center;
+      color: #4CAF50;
+    }
+    .container {
+      background: #fff;
+      padding: 20px 30px;
+      border-radius: 10px;
+      box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+      margin-top: 20px;
+    }
+    .options {
+      margin-bottom: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+    .options label {
+      font-size: 1rem;
+    }
+    .options button {
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      padding: 10px 15px;
+      font-size: 1rem;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .options button:hover {
+      background-color: #45a049;
+    }
+    .question-box {
+      border: 1px solid #ddd;
+      padding: 20px;
+      margin: 20px 0;
+      border-radius: 8px;
+      background-color: #f1f1f1;
+    }
+    .question {
+      font-size: 1.8em;
+      font-weight: bold;
+      color: #333;
+      margin-bottom: 15px;
+    }
+    .controls input {
+      width: 100%;
+      padding: 10px;
+      font-size: 1.1rem;
+      margin-right: 0;
+      border: 1px solid #ccc;
+      border-radius: 5px;
+      outline: none;
+    }
+    .controls input:focus {
+      border-color: #4CAF50;
+    }
+    .controls button {
+      margin-top: 10px;
+      width: 100%;
+      background-color: #4CAF50;
+      color: white;
+      font-size: 1rem;
+      padding: 10px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+    }
+    .controls button:hover {
+      background-color: #45a049;
+    }
+    .score-board {
+      font-size: 1.2em;
+      text-align: center;
+      margin-top: 15px;
+    }
+    .feedback {
+      margin-top: 15px;
+      text-align: center;
+      font-size: 1rem;
+      font-weight: bold;
+      color: #d32f2f;
+    }
+    .feedback.correct {
+      color: #388e3c;
+    }
+  </style>
+</head>
+<body>
+  <h1>금쪽이를 위한 정수의 덧셈 뺄셈 연습</h1>
+  <div class="container">
+    <div class="options">
+      <div>
+        <label>
+          <input type="checkbox" id="addition" checked> 덧셈
+        </label>
+        <label>
+          <input type="checkbox" id="subtraction" checked> 뺄셈
+        </label>
+      </div>
+      <button onclick="startQuiz()">퀴즈 시작</button>
+    </div>
+    <div class="question-box" id="quiz-container" style="display: none;">
+      <div class="question" id="question"></div>
+      <div class="controls">
+        <input type="number" id="answer" placeholder="정답 입력">
+        <button onclick="submitAnswer()">정답 제출</button>
+      </div>
+      <div class="score-board">
+        <p id="time-left"></p>
+        <p id="remaining-questions"></p>
+        <p id="current-score"></p>
+      </div>
+      <div class="feedback" id="feedback"></div>
+    </div>
+  </div>
+
+  <script>
+    let questions = [];
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let timeLeft = 50;
+    let timer;
+    let attemptsLeft = 3;
+
+    // 퀴즈 시작 함수
+    function startQuiz() {
+      const addition = document.getElementById("addition").checked;
+      const subtraction = document.getElementById("subtraction").checked;
+      if (!addition && !subtraction) {
+        alert("최소 하나의 연산을 선택해야 합니다!");
+        return;
+      }
+
+      questions = generateQuestions(addition, subtraction);
+      currentQuestionIndex = 0;
+      score = 0;
+
+      document.getElementById("quiz-container").style.display = "block";
+      showQuestion();
+    }
+
+    // 질문 생성 함수
+    function generateQuestions(addition, subtraction) {
+      const operations = [];
+      if (addition) operations.push("+");
+      if (subtraction) operations.push("-");
+
+      const generatedQuestions = [];
+      while (generatedQuestions.length < 10) {
+        const num1 = getRandomInt(-9, 9);
+        const num2 = getRandomInt(-9, 9, true); // exclude zero
+        const operation = operations[Math.floor(Math.random() * operations.length)];
+
+        if (operation === "+" && num1 > 0 && num2 > 0) continue; // 양수 + 양수 제외
+        if (operation === "-" && num1 > num2) continue; // 결과가 양수인 양수 - 양수 제외
+
+        const question = `${formatNumber(num1)} ${operation} ${formatNumber(num2)}`;
+        const answer = eval(`${num1} ${operation} ${num2}`);
+        generatedQuestions.push({ question, answer });
+      }
+      return generatedQuestions;
+    }
+
+    // 랜덤 정수 생성 함수
+    function getRandomInt(min, max, excludeZero = false) {
+      let num;
+      do {
+        num = Math.floor(Math.random() * (max - min + 1)) + min;
+      } while (excludeZero && num === 0);
+      return num;
+    }
+
+    // 숫자 포맷 함수 (음수에 괄호 추가)
+    function formatNumber(num) {
+      return num < 0 ? `(${num})` : `${num}`;
+    }
+
+    // 문제 표시 함수
+    function showQuestion() {
+      clearInterval(timer);
+      timeLeft = 50;
+      attemptsLeft = 3;
+
+      const currentQuestion = questions[currentQuestionIndex];
+      document.getElementById("question").textContent = `문제: ${currentQuestion.question}`;
+      document.getElementById("time-left").textContent = `남은 시간: ${timeLeft}초`;
+      document.getElementById("answer").value = "";
+      document.getElementById("remaining-questions").textContent = `남은 문제 수: ${questions.length - currentQuestionIndex}`;
+      document.getElementById("current-score").textContent = `현재 점수: ${score}`;
+      document.getElementById("feedback").textContent = "";
+
+      timer = setInterval(() => {
+        timeLeft -= 1;
+        document.getElementById("time-left").textContent = `남은 시간: ${timeLeft}초`;
+        if (timeLeft <= 0) {
+          clearInterval(timer);
+          nextQuestion(false);
+        }
+      }, 1000);
+
+      document.getElementById("answer").focus();
+    }
+
+    // 정답 제출 함수
+    function submitAnswer() {
+      const answerField = document.getElementById("answer");
+      const answer = parseInt(answerField.value, 10);
+      const currentQuestion = questions[currentQuestionIndex];
+
+      if (answer === currentQuestion.answer) {
+        clearInterval(timer);
+        score += timeLeft; // 남은 시간만큼 점수 획득
+        document.getElementById("feedback").textContent = `정답입니다! ${timeLeft}점을 획득했습니다.`;
+        document.getElementById("feedback").classList.add("correct");
+        nextQuestion(true);
+      } else {
+        attemptsLeft -= 1;
+        if (attemptsLeft > 0) {
+          document.getElementById("feedback").textContent = `오답입니다. 남은 기회: ${attemptsLeft}`;
+          document.getElementById("feedback").classList.remove("correct");
+        } else {
+          clearInterval(timer);
+          document.getElementById("feedback").textContent = `기회를 모두 소진했습니다. 정답은 ${currentQuestion.answer}입니다.`;
+          nextQuestion(false);
+        }
+      }
+    }
+
+    // 다음 문제로 이동
+    function nextQuestion(correct) {
+      if (correct || timeLeft <= 0 || attemptsLeft <= 0) {
+        currentQuestionIndex += 1;
+        if (currentQuestionIndex < questions.length) {
+          showQuestion();
+        } else {
+          endQuiz();
+        }
+      }
+      document.getElementById("current-score").textContent = `현재 점수: ${score}`;
+    }
+
+    // 퀴즈 종료 함수
+    function endQuiz() {
+      document.getElementById("quiz-container").style.display = "none";
+      alert(`퀴즈 종료! 당신의 총 점수는 ${score}점입니다.`);
+    }
+
+    // Enter 키로 정답 제출
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Enter") submitAnswer();
+    });
+  </script>
+</body>
+</html>
